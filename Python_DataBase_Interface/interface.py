@@ -10,11 +10,14 @@ conn = sqlite3.connect("SQLITE_DataBase/comments.db")
 cur = conn.cursor()
 
 # Load schema from external file
-with open("/Comment_Analyzer/SQLITE_DataBase/schema.sql", "r", encoding="utf-8") as f:
+project_directory = Path.cwd()
+file_path = project_directory/"SQLITE_DataBase"/"schema.sql"
+with open(file_path, "r", encoding="utf-8") as f:
     schema_sql = f.read()
 
 # Execute the schema (can contain multiple statements)
 cur.executescript(schema_sql)
+
 
 # Example insert
 cur.execute("""
