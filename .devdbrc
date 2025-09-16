@@ -1,0 +1,6 @@
+[
+  {
+    "type": "sqlite",
+    "path": "/home/scorn556/Comment_Analyzer/SQLITE_DataBase/comments.db"
+  }
+]

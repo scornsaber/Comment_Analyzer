@@ -29,16 +29,17 @@ for comments_file in comments_dir.glob("*.jsonl"):
         for line in f:
             comment = json.loads(line)
             cur.execute("""
-                INSERT INTO comment (id, platform, source_id, author_id, text, published_at, like_count, lang)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO comment (id, platform, video_id, author_id, text, published_at, like_count, reply_count, lang)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 comment["id"],
                 comment["platform"],
-                comment["source_id"],
+                comment["video_id"],
                 comment["author_id"],
                 comment["text"],
                 comment["published_at"],
                 comment["like_count"],
+                comment["reply_count"],
                 comment["lang"]
             ))
 
