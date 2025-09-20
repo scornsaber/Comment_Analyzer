@@ -1,47 +1,45 @@
 -- SQLITE_DataBase/enforce_caps.sql
--- Enforce caps + performance indexes
--- Requires SQLite with window functions (3.25+). Most modern builds qualify.
+-- Compatible pruning triggers (no CTEs/window functions)
 
--- Indexes (speed up pruning + queries)
+-- Helpful indexes
 CREATE INDEX IF NOT EXISTS idx_comment_video
   ON comment(video_id);
 
 CREATE INDEX IF NOT EXISTS idx_comment_video_pub
   ON comment(video_id, published_at);
 
--- Cap each video_id to the most recent 2000 comments (by published_at, tie-break id)
-CREATE TRIGGER IF NOT EXISTS trg_cap_per_video
+-- If old triggers exist, drop them first so we can redefine cleanly
+DROP TRIGGER IF EXISTS trg_cap_per_video;
+DROP TRIGGER IF EXISTS trg_cap_video_count;
+
+-- Cap each video_id to MOST RECENT 2000 comments (by published_at, tie-break by id)
+CREATE TRIGGER trg_cap_per_video
 AFTER INSERT ON comment
 BEGIN
-  WITH ranked AS (
-    SELECT id,
-           ROW_NUMBER() OVER (
-             PARTITION BY video_id
-             ORDER BY datetime(published_at) DESC, id DESC
-           ) AS rn
-    FROM comment
-    WHERE video_id = NEW.video_id
-  )
   DELETE FROM comment
-  WHERE id IN (SELECT id FROM ranked WHERE rn > 2000); -- This number may can be adjusted
+  WHERE video_id = NEW.video_id
+    AND id NOT IN (
+      SELECT id
+      FROM comment
+      WHERE video_id = NEW.video_id
+      ORDER BY datetime(published_at) DESC, id DESC
+      LIMIT 2000
+    );
 END;
 
--- Keep only 5 video_ids total, drop least-recently-active ones
--- "Activity" = latest published_at among that video's comments.
-CREATE TRIGGER IF NOT EXISTS trg_cap_video_count
+-- Keep only the 5 MOST-RECENTLY ACTIVE videos overall
+-- "Activity" = MAX(published_at) within that video.
+CREATE TRIGGER trg_cap_video_count
 AFTER INSERT ON comment
 BEGIN
-  WITH last_activity AS (
-    SELECT video_id, MAX(datetime(published_at)) AS last_ts
-    FROM comment
-    GROUP BY video_id
-  ),
-  to_drop AS (
-    SELECT video_id
-    FROM last_activity
-    ORDER BY last_ts DESC
-    LIMIT -1 OFFSET 5    -- keep top 5, mark the rest to drop
-  )
   DELETE FROM comment
-  WHERE video_id IN (SELECT video_id FROM to_drop);
+  WHERE video_id IN (
+    SELECT video_id FROM (
+      SELECT video_id, MAX(datetime(published_at)) AS last_ts
+      FROM comment
+      GROUP BY video_id
+      ORDER BY last_ts DESC
+      LIMIT -1 OFFSET 5   -- keep top 5, delete the rest
+    )
+  );
 END;
