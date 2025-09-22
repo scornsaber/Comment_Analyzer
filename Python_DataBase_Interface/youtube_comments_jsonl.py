@@ -61,8 +61,8 @@ def get_comments(video_id):
 
     return comments
 
-# Run and save to JSONL
-if __name__ == "__main__":
+
+def main(VIDEO_ID): 
     comments_data = get_comments(VIDEO_ID)
 
     with open('youtube_comments.jsonl', 'w', encoding='utf-8') as f:
@@ -70,3 +70,8 @@ if __name__ == "__main__":
             f.write(json.dumps(comment, ensure_ascii=False) + '\n')
 
     print(f"Saved {len(comments_data)} comments to youtube_comments.jsonl")
+
+
+# Run and save to JSONL
+if __name__ == "__main__":
+    main(VIDEO_ID)

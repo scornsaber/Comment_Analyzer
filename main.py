@@ -6,7 +6,9 @@
 #
 
 from pipeline import main as pipeline_main
+from Project_UI import main as ui_main
 
 if __name__ == "__main__":
     # Forward all CLI args to pipeline
     pipeline_main()
+    ui_main()
