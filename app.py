@@ -5,7 +5,7 @@ from fetch_youtube import extract_video_id, fetch_comments
 from analyze import analyze
 
 st.set_page_config(page_title="YouTube Comment Analyzer", layout="wide")
-st.title("YouTube Comment Analyzer (DB-less)")
+st.title("YouTube Comment Analyzer")
 
 # Use API key from secrets.toml or env var
 api_key = st.secrets.get("YOUTUBE_API_KEY") or os.getenv("YOUTUBE_API_KEY", "")
