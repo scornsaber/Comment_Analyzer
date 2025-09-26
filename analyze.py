@@ -2,7 +2,7 @@ import pandas as pd
 from typing import Dict
 
 def analyze(df: pd.DataFrame) -> Dict:
-    """Perform a simple analysis (replace with your model later)."""
+    """Perform a simple analysis (replace with Gracy's model later)."""
     n = len(df)
     avg_len = df["text"].str.len().mean() if n else 0.0
     return {

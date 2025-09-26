@@ -12,7 +12,7 @@ api_key = st.secrets.get("YOUTUBE_API_KEY") or os.getenv("YOUTUBE_API_KEY", "")
 
 url = st.text_input("YouTube URL or Video ID")
 if not api_key:
-    st.warning("⚠️ No YouTube API key set. Add it in .streamlit/secrets.toml or as env var YOUTUBE_API_KEY.")
+    st.warning("No YouTube API key set. Add it in .streamlit/secrets.toml or as env var YOUTUBE_API_KEY.")
 
 if st.button("Analyze") and url and api_key:
     video_id = extract_video_id(url)
