@@ -5,7 +5,7 @@ from fetch_youtube import extract_video_id, fetch_comments
 from analyze import analyze
 
 st.set_page_config(page_title="YouTube Comment Analyzer", layout="wide")
-st.title("YouTube Comment Analyzer (DB-less)")
+st.title("YouTube Comment Analyzer")
 
 # Use API key from secrets.toml or env var
 api_key = st.secrets.get("YOUTUBE_API_KEY") or os.getenv("YOUTUBE_API_KEY", "")
@@ -41,3 +41,9 @@ if st.button("Analyze") and url and api_key:
         file_name=f"{video_id}_analysis.json",
         mime="application/json"
     )
+
+    initial_sidebar_state="collapsed"
+
+    st.link_button("View Dashboards", url="/Dashboard") 
+    st.link_button("View Comment Summary", url="/Summary") 
+    st.link_button("View Sentiment Analysis", url="/Sentiment") 
