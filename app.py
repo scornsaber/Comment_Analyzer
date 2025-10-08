@@ -18,7 +18,7 @@ if not api_key:
 if st.button("Analyze") and url and api_key:
     video_id = extract_video_id(url)
     with st.spinner("Fetching comments…"):
-        df = fetch_comments(video_id, api_key, max_pages=7)
+        df = fetch_comments(video_id, api_key, max_pages=10)
     with st.spinner("Analyzing…"):
         result = analyze(df)
 
