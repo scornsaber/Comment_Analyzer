@@ -3,6 +3,7 @@ import streamlit as st
 import pandas as pd
 from fetch_youtube import extract_video_id, fetch_comments
 from analyze import analyze
+import json
 
 st.set_page_config(page_title="YouTube Comment Analyzer", layout="wide")
 st.title("YouTube Comment Analyzer")
@@ -36,10 +37,10 @@ if st.button("Analyze") and url and api_key:
         mime="text/csv"
     )
     st.download_button(
-        "Download comments (Json)",
-        df.to_json(index=False).encode("utf-8"),
-        file_name=f"{video_id}_comments.json",
-        mime="text/json"
+        "Download comments (JSONL)",
+        "\n".join(df.apply(lambda row: json.dumps(row.dropna().to_dict(), ensure_ascii=False), axis=1)).encode("utf-8"),
+        file_name=f"{video_id}_comments.jsonl",
+        mime="application/json"
     )
     st.download_button(
         "Download analysis (JSON)",
