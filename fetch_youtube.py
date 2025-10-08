@@ -14,6 +14,7 @@ def _request(url: str) -> dict:
         with urllib.request.urlopen(url) as r:
             return json.loads(r.read().decode("utf-8"))
     except HTTPError as e:
+        # Try to parse Google error payload for clarity
         try:
             detail = e.read().decode("utf-8")
             payload = json.loads(detail)
@@ -24,27 +25,22 @@ def _request(url: str) -> dict:
     except URLError as e:
         raise RuntimeError(f"Network error contacting YouTube: {e.reason}") from None
 
-MAX_COMMENTS = 2000  # hard safety cap
+MAX_COMMENTS = 2000
 
-def fetch_comments(video_id: str, api_key: str, max_comments: int = MAX_COMMENTS) -> pd.DataFrame:
+def fetch_comments(video_id: str, api_key: str, max_pages: int = 7) -> pd.DataFrame:
     if not api_key:
         raise RuntimeError("Missing YOUTUBE_API_KEY (set in Streamlit Secrets or env var).")
 
-    cap = min(max_comments, MAX_COMMENTS)
-    rows, token = [], None
-
+    rows, token, pages = [], None, 0
     while True:
-        qs_params = {
+        qs = urllib.parse.urlencode({
             "part": "snippet",
             "videoId": video_id,
             "maxResults": 100,
+            "pageToken": token or "",
             "textFormat": "plainText",
             "key": api_key,
-        }
-        if token:
-            qs_params["pageToken"] = token
-
-        qs = urllib.parse.urlencode(qs_params)
+        })
         data = _request(f"{YOUTUBE_COMMENTS_ENDPOINT}?{qs}")
 
         for it in data.get("items", []):
@@ -57,11 +53,9 @@ def fetch_comments(video_id: str, api_key: str, max_comments: int = MAX_COMMENTS
                 "replies": it.get("snippet", {}).get("totalReplyCount", 0),
             })
 
-            if len(rows) >= cap:
-                return pd.DataFrame(rows)
-
         token = data.get("nextPageToken")
-        if not token:
+        pages += 1
+        if not token or pages >= max_pages:
             break
 
     return pd.DataFrame(rows)
