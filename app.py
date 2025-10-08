@@ -36,10 +36,10 @@ if st.button("Analyze") and url and api_key:
         mime="text/csv"
     )
     st.download_button(
-        "Download comments (CSV)",
+        "Download comments (Json)",
         df.to_json(index=False).encode("utf-8"),
         file_name=f"{video_id}_comments.csv",
-        mime="text/csv"
+        mime="text/json"
     )
     st.download_button(
         "Download analysis (JSON)",
