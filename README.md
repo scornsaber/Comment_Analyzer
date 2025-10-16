@@ -145,4 +145,3 @@ flowchart TB
     CNT --> SRV
     SRV --> TMP
     SRV -->|HTTPS| GAPI[[Google YouTube Data API]]
-```mermaid
