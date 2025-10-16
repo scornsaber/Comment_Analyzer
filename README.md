@@ -27,7 +27,7 @@ flowchart TD
     M --> N[End]
 ```
 
-
+## Activity Diagram 2 – Analyze and Summarize Comments
 ```mermaid
 flowchart TD
     A[Start] --> B[Receive comments DataFrame]
@@ -42,24 +42,25 @@ flowchart TD
     J --> K[End]
 ```
 
-
+## Activity Diagram 3 – Streamlit Application Flow
 ```mermaid
-A[Launch app.py (Streamlit)] --> B[Render input form]
-    B --> C{User clicks "Fetch"?}
+flowchart TD
+    A["Launch app.py (Streamlit)"] --> B["Render input form"]
+    B --> C{"User clicks 'Fetch'?"}
     C -->|No| B
-    C -->|Yes| D[extract_video_id called]
-    D --> E[Fetch pages and build DataFrame]
-    E --> F[Summarize data]
-    F --> G[Update UI – counts, averages, samples]
-    G --> H{User clicks Export?}
-    H -->|Yes| I[Write CSV or JSON to temp storage]
-    H -->|No| J[Keep in memory]
-    I --> K[Provide download buttons]
+    C -->|Yes| D["extract_video_id called"]
+    D --> E["Fetch pages and build DataFrame"]
+    E --> F["Summarize data"]
+    F --> G["Update UI – counts, averages, samples"]
+    G --> H{"User clicks Export?"}
+    H -->|Yes| I["Write CSV or JSON to temp storage"]
+    H -->|No| J["Keep in memory"]
+    I --> K["Provide download buttons"]
     J --> K
-    K --> L[Done]
+    K --> L["Done"]
 ```
 
-
+## Sequence Diagram 1 – YouTube Comment Fetch Flow
 ```mermaid
 sequenceDiagram
     actor User
@@ -80,7 +81,7 @@ sequenceDiagram
     UI-->>User: Show totals and basic stats
 ```
 
-
+## Sequence Diagram 2 – Comment Analysis Flow
 ```mermaid
 sequenceDiagram
     actor User
@@ -96,7 +97,7 @@ sequenceDiagram
     UI-->>User: Dashboard panels and optional downloads
 ```
 
-
+## State Machine Diagram – Fetch Session Lifecycle
 ```mermaid
 stateDiagram-v2
     [*] --> Idle
@@ -113,6 +114,7 @@ stateDiagram-v2
     Error --> Idle : User retries
 ```
 
+## Component Diagram – Application Modules and Data Flow
 ```mermaid
 flowchart LR
     subgraph UI["Streamlit UI (app.py)"]
@@ -138,6 +140,7 @@ flowchart LR
     CFG --> UI
 ```
 
+## Deployment Diagram – Local and API Infrastructure
 ```mermaid
 flowchart TB
     subgraph Client
