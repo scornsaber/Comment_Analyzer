@@ -1,3 +1,10 @@
+# Comment Analyzer – UML Diagrams (DB-less)
+
+Below are activity, sequence, state, component, and deployment diagrams for the DB-less version of the Comment Analyzer.
+
+---
+
+## Activity Diagram 1 – Fetch YouTube Comments
 ```mermaid
 flowchart TD
     A[Start] --> B[User enters YouTube URL or ID]
@@ -15,6 +22,7 @@ flowchart TD
     K -->|No| L[Normalize to DataFrame]
     L --> M[Return comments to UI]
     M --> N[End]
+```
 
 
 
@@ -29,6 +37,7 @@ flowchart TD
     H --> I[Optionally export CSV/JSON]
     I --> J[Render dashboard panels]
     J --> K[End]
+
 
 
 
@@ -49,24 +58,25 @@ flowchart TD
 
 
 
+
 sequenceDiagram
     actor User
     participant UI as Streamlit UI (app.py)
     participant FY as fetch_youtube.py
     participant GAPI as YouTube Data API
 
-
     User->>UI: Paste URL/ID + click Fetch
     UI->>FY: extract_video_id(url)
     FY-->>UI: video_id
     UI->>FY: request(video_id, pageToken?)
     loop Paginate until no nextPageToken
-    FY->>GAPI: GET commentThreads (videoId, key, pageToken)
-    GAPI-->>FY: JSON {items, nextPageToken?}
-    FY-->>UI: items (append)
+        FY->>GAPI: GET commentThreads (videoId, key, pageToken)
+        GAPI-->>FY: JSON {items, nextPageToken?}
+        FY-->>UI: items (append)
     end
     UI->>UI: to_dataframe(items)
-    UI-->>User: Show total comments & basic stats  
+    UI-->>User: Show total comments & basic stats
+  
 
 
 
@@ -76,13 +86,13 @@ sequenceDiagram
     participant AZ as analyze.py
     participant PD as pandas
 
-
     User->>UI: Click Analyze
     UI->>AZ: summarize(df)
     AZ->>PD: compute metrics, groupbys
     PD-->>AZ: aggregates
     AZ-->>UI: summary (counts, avg length, samples)
     UI-->>User: Dashboard panels & (optional) downloads
+
 
 
 
@@ -101,13 +111,13 @@ stateDiagram-v2
     Error --> Idle : User retries
 
 
+
 flowchart LR
     subgraph UI[Streamlit UI (app.py)]
-    UI1[Forms & Buttons]
-    UI2[Pages/Panels]
-    UI3[Session State]
+        UI1[Forms & Buttons]
+        UI2[Pages/Panels]
+        UI3[Session State]
     end
-
 
     FY[fetch_youtube.py\n- extract_video_id\n- request(url)]
     AZ[analyze.py\n- summarize(df)\n- aggregates]
@@ -115,7 +125,6 @@ flowchart LR
     CFG[Config/.streamlit]
     FS[(Local FS / Temp Files)]
     GAPI[[YouTube Data API]]
-
 
     UI1 --> FY
     FY --> GAPI
@@ -130,16 +139,14 @@ flowchart LR
 
 flowchart TB
     subgraph Client
-    BR[Web Browser]
+        BR[Web Browser]
     end
-
 
     subgraph Host[Dev/Prod Host]
-    CNT[(Docker Container: Streamlit)]
-    SRV[app.py + fetch_youtube.py + analyze.py]
-    TMP[(Ephemeral Storage /tmp)]
+        CNT[(Docker Container: Streamlit)]
+        SRV[app.py + fetch_youtube.py + analyze.py]
+        TMP[(Ephemeral Storage /tmp)]
     end
-
 
     BR <--HTTP(S)--> CNT
     CNT --> SRV
