@@ -1,3 +1,4 @@
+```mermaid
 flowchart TD
     A[Start] --> B[User enters YouTube URL or ID]
     B --> C{Extract video ID}
@@ -15,6 +16,8 @@ flowchart TD
     L --> M[Return comments to UI]
     M --> N[End]
 
+
+
 flowchart TD
     A[Start] --> B[Receive comments DataFrame]
     B --> C[Clean text (trim, lower, strip URLs/emojis)]
@@ -26,6 +29,7 @@ flowchart TD
     H --> I[Optionally export CSV/JSON]
     I --> J[Render dashboard panels]
     J --> K[End]
+
 
 
 flowchart TD
@@ -42,6 +46,8 @@ flowchart TD
     I --> K[Provide download buttons]
     J --> K
     K --> L[Done]
+
+
 
 sequenceDiagram
     actor User
@@ -62,6 +68,8 @@ sequenceDiagram
     UI->>UI: to_dataframe(items)
     UI-->>User: Show total comments & basic stats  
 
+
+
 sequenceDiagram
     actor User
     participant UI as Streamlit UI (app.py)
@@ -77,6 +85,7 @@ sequenceDiagram
     UI-->>User: Dashboard panels & (optional) downloads
 
 
+
 stateDiagram-v2
     [*] --> Idle
     Idle --> Validating : Fetch clicked
@@ -90,6 +99,7 @@ stateDiagram-v2
     Exporting --> Displaying : Files ready
     Displaying --> Idle : User resets/new query
     Error --> Idle : User retries
+
 
 flowchart LR
     subgraph UI[Streamlit UI (app.py)]
@@ -116,6 +126,8 @@ flowchart LR
     UI3 --> EX
     CFG --> UI
 
+
+
 flowchart TB
     subgraph Client
     BR[Web Browser]
@@ -133,3 +145,4 @@ flowchart TB
     CNT --> SRV
     SRV --> TMP
     SRV -->|HTTPS| GAPI[[Google YouTube Data API]]
+```mermaid
