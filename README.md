@@ -115,18 +115,18 @@ stateDiagram-v2
 
 ```mermaid
 flowchart LR
-    subgraph UI[Streamlit UI (app.py)]
-        UI1[Forms and buttons]
-        UI2[Pages and panels]
-        UI3[Session state]
+    subgraph UI["Streamlit UI (app.py)"]
+        UI1["Forms and buttons"]
+        UI2["Pages and panels"]
+        UI3["Session state"]
     end
 
-    FY[fetch_youtube.py<br/>extract_video_id<br/>request]
-    AZ[analyze.py<br/>summarize<br/>aggregates]
-    EX[Exporter<br/>to_csv, to_json]
-    CFG[Config /.streamlit]
-    FS[(Local temp storage)]
-    GAPI[[YouTube Data API]]
+    FY["fetch_youtube.py<br/>extract_video_id<br/>request"]
+    AZ["analyze.py<br/>summarize<br/>aggregates"]
+    EX["Exporter<br/>to_csv, to_json"]
+    CFG["Config /.streamlit"]
+    FS[("(Local temp storage)")]
+    GAPI[["YouTube Data API"]]
 
     UI1 --> FY
     FY --> GAPI
