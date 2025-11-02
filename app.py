@@ -5,11 +5,11 @@ import pandas as pd
 import streamlit as st
 from fetch_youtube import extract_video_id, fetch_comments
 from analyze import (
-    analyze,                      # simple scalar stats
-    run_pre_models,               # NEW: runs Detoxify + Sentiment
-    fig_toxicity_distribution,    # NEW: matplotlib Figure
-    fig_sentiment_distribution,   # NEW: matplotlib Figure
-    fig_sentiment_score_hist,     # NEW: matplotlib Figure
+    analyze,
+    run_pre_models,
+    fig_toxicity_distribution,
+    fig_sentiment_distribution,
+    fig_sentiment_score_hist,
 )
 from openai import OpenAI
 
