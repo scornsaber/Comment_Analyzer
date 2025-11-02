@@ -5,11 +5,11 @@ import pandas as pd
 import streamlit as st
 from fetch_youtube import extract_video_id, fetch_comments
 from analyze import (
-    analyze,
-    run_pre_models,
-    fig_toxicity_distribution,
-    fig_sentiment_distribution,
-    fig_sentiment_score_hist,
+    analyze,                      # simple scalar stats
+    run_pre_models,               # Detoxify + Sentiment
+    fig_toxicity_distribution,    # matplotlib Figure
+    fig_sentiment_distribution,   # matplotlib Figure
+    fig_sentiment_score_hist,     # matplotlib Figure
 )
 from openai import OpenAI
 
@@ -37,7 +37,7 @@ if st.button("Analyze") and url and api_key:
     st.session_state["result"] = result
     st.session_state["video_id"] = video_id
 
-    # Reset any previous ML results (so we auto-run for this new dataset)
+    # Reset ML results for this new dataset and set a cache key
     st.session_state.pop("merged_df_ml", None)
     st.session_state.pop("ml_summary", None)
     st.session_state["ml_cache_key"] = (video_id, len(df))
@@ -48,7 +48,7 @@ result = st.session_state.get("result", {})
 video_id = st.session_state.get("video_id", "video")
 
 # ----------------------------
-# Display results and downloads
+# Display results
 # ----------------------------
 if not df.empty:
     st.subheader("Summary")
@@ -57,28 +57,6 @@ if not df.empty:
 
     st.subheader("Sample comments")
     st.dataframe(df.head(200))
-
-    st.subheader("Downloads")
-    st.download_button(
-        "Download comments (CSV)",
-        df.to_csv(index=False).encode("utf-8"),
-        file_name=f"{video_id}_comments.csv",
-        mime="text/csv"
-    )
-    st.download_button(
-        "Download comments (JSONL)",
-        "\n".join(
-            df.apply(lambda row: json.dumps(row.dropna().to_dict(), ensure_ascii=False), axis=1)
-        ).encode("utf-8"),
-        file_name=f"{video_id}_comments.jsonl",
-        mime="application/json"
-    )
-    st.download_button(
-        "Download analysis (JSON)",
-        pd.Series(result).to_json(indent=2).encode("utf-8"),
-        file_name=f"{video_id}_analysis.json",
-        mime="application/json"
-    )
 else:
     st.info("No comments loaded yet. Enter a URL and click Analyze.")
 
@@ -86,7 +64,6 @@ else:
 # Auto-run pre-LLM analytics (toxicity + sentiment)
 # ----------------------------
 if not df.empty:
-    # Only compute if we haven't yet for this dataset
     expected_key = (video_id, len(df))
     have_key = st.session_state.get("ml_cache_key")
     merged_df_ml = st.session_state.get("merged_df_ml")
@@ -117,17 +94,34 @@ if isinstance(merged_df_ml, pd.DataFrame) and not merged_df_ml.empty:
         st.pyplot(fig_sentiment_score_hist(merged_df_ml))
 
 # ----------------------------
-# LLM Summarization Section (placed AFTER analytics)
+# Helper: build LLM prompt (with pre-analysis injected)
 # ----------------------------
-st.divider()
-st.subheader("LLM Summary")
-
-def _comments_to_prompt(df, top_by: str = "relevance") -> str:
+def _comments_to_prompt(df, top_by: str = "relevance", ml_summary=None) -> str:
+    # Choose top 100 comments
     if top_by == "likes" and "likes" in df.columns:
         top = df.nlargest(100, "likes").copy()
     else:
         top = df.head(100).copy()
 
+    # Pre-analysis context from ml_summary
+    analytics_context = ""
+    if ml_summary:
+        n_scored = ml_summary.get("n_scored", 0)
+        n_toxic = ml_summary.get("n_toxic", 0)
+        toxicity_ratio = (n_toxic / max(1, n_scored))
+        avg_tox = ml_summary.get("avg_toxicity", 0.0)
+        sent_counts = ml_summary.get("sentiment_counts", {})
+        avg_sent = ml_summary.get("avg_sentiment_score", 0.0)
+        analytics_context = (
+            f"\n\nPre-analysis (model-assisted):\n"
+            f"- Comments scored: {n_scored}\n"
+            f"- Toxic: {n_toxic} ({toxicity_ratio:.1%}), Avg toxicity: {avg_tox:.2f}\n"
+            f"- Sentiment counts: {sent_counts}\n"
+            f"- Avg sentiment score: {avg_sent:.2f}\n"
+            f"Use this as context but verify against the comments below.\n"
+        )
+
+    # Build comment list
     lines = []
     for _, r in top.iterrows():
         likes = int(r.get("likes", 0) or 0)
@@ -138,14 +132,19 @@ def _comments_to_prompt(df, top_by: str = "relevance") -> str:
         lines.append(f"- [{likes}👍 | {repl}↩] {text}")
     joined = "\n".join(lines)
 
-    # (Optional) You could also inject a brief summary of ml_summary here for the LLM to consider.
-
     instructions = (
-        "You are summarizing YouTube comments. Identify the main themes, opinions, "
-        "and viewer sentiment (rough % positive/neutral/negative). "
-        "Provide a brief, structured markdown summary."
+        "You are summarizing YouTube comments. Use the analytics context to help "
+        "understand tone and sentiment, but verify by reading the comments. "
+        "Identify the main themes, representative opinions, disagreements, and an estimate "
+        "of positive/neutral/negative sentiment. Provide a concise, structured markdown summary."
     )
-    return f"{instructions}\n\nCOMMENTS (top 100):\n{joined}"
+    return f"{instructions}{analytics_context}\n\nCOMMENTS (top 100):\n{joined}"
+
+# ----------------------------
+# LLM Summarization Section (AFTER analytics)
+# ----------------------------
+st.divider()
+st.subheader("LLM Summary")
 
 col1, col2 = st.columns([2, 1])
 with col1:
@@ -157,7 +156,11 @@ if run_summary:
     if df.empty:
         st.warning("No comments loaded yet.")
     else:
-        prompt = _comments_to_prompt(df, top_by="likes" if top_by.endswith("likes") else "relevance")
+        prompt = _comments_to_prompt(
+            df,
+            top_by="likes" if top_by.endswith("likes") else "relevance",
+            ml_summary=ml_summary,
+        )
         client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY"))
         if not client.api_key:
             st.error("Missing OPENAI_API_KEY in Streamlit secrets or environment.")
@@ -173,3 +176,16 @@ if run_summary:
                         st.markdown(summary)
                     except Exception as e:
                         st.error(f"LLM error: {e}")
+
+# ----------------------------
+# Downloads (bottom): analysis JSON only
+# ----------------------------
+if result:
+    st.divider()
+    st.subheader("Downloads")
+    st.download_button(
+        "Download analysis (JSON)",
+        pd.Series(result).to_json(indent=2).encode("utf-8"),
+        file_name=f"{video_id}_analysis.json",
+        mime="application/json"
+    )
