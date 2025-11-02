@@ -61,24 +61,24 @@ else:
     st.info("No comments loaded yet. Enter a URL and click Analyze.")
 
 # ----------------------------
-# Auto-run pre-LLM analytics (ONLY top 50 most relevant)
+# Auto-run pre-LLM analytics (ONLY top 100 most relevant)
 # ----------------------------
 if not df.empty:
     expected_key = (video_id, len(df))
     have_key = st.session_state.get("ml_cache_key")
     merged_df_ml = st.session_state.get("merged_df_ml")
 
-    # Always compute on the first 50 rows of df (fetch is already by relevance)
-    df_top50 = df.head(50).copy()
+    # Always compute on the first 100 rows of df (fetch is already by relevance)
+    df_top100 = df.head(100).copy()
 
     if merged_df_ml is None or have_key != expected_key:
-        with st.status("Running toxicity & sentiment models on top 50 (relevance)…", expanded=False):
+        with st.status("Running toxicity & sentiment models", expanded=False):
             try:
-                merged_df_ml, ml_summary = run_pre_models(df_top50, toxicity_threshold=0.7, max_items=50)
+                merged_df_ml, ml_summary = run_pre_models(df_top100, toxicity_threshold=0.7, max_items=100)
                 st.session_state["merged_df_ml"] = merged_df_ml
                 st.session_state["ml_summary"] = ml_summary
                 st.session_state["ml_cache_key"] = expected_key
-                st.success(f"Scored {ml_summary['n_scored']} comments (top 50 by relevance).")
+                st.success(f"Scored {ml_summary['n_scored']} comments (top 100 by relevance).")
             except Exception as e:
                 st.error(f"Analysis error: {e}")
 
@@ -88,7 +88,7 @@ ml_summary = st.session_state.get("ml_summary")
 
 if isinstance(merged_df_ml, pd.DataFrame) and not merged_df_ml.empty:
     st.divider()
-    st.subheader("Pre-LLM Analytics (toxicity + sentiment) — Top 50 by relevance")
+    st.subheader("Pre-LLM Analytics (toxicity + sentiment) — By relevance")
     with st.expander("Toxic vs Not Toxic"):
         st.pyplot(fig_toxicity_distribution(merged_df_ml))
     with st.expander("Sentiment label distribution"):
@@ -106,7 +106,7 @@ def _comments_to_prompt(df, top_by: str = "relevance", ml_summary=None) -> str:
     else:
         top = df.head(100).copy()
 
-    # Pre-analysis context from ml_summary (make clear it's top 50)
+    # Pre-analysis context from ml_summary 
     analytics_context = ""
     if ml_summary:
         n_scored = ml_summary.get("n_scored", 0)
@@ -116,7 +116,7 @@ def _comments_to_prompt(df, top_by: str = "relevance", ml_summary=None) -> str:
         sent_counts = ml_summary.get("sentiment_counts", {})
         avg_sent = ml_summary.get("avg_sentiment_score", 0.0)
         analytics_context = (
-            f"\n\nPre-analysis (model-assisted on TOP 50 by relevance):\n"
+            f"\n\nPre-analysis (model-assisted on TOP 100 by relevance):\n"
             f"- Comments scored: {n_scored}\n"
             f"- Toxic: {n_toxic} ({toxicity_ratio:.1%}), Avg toxicity: {avg_tox:.2f}\n"
             f"- Sentiment counts: {sent_counts}\n"
@@ -139,7 +139,8 @@ def _comments_to_prompt(df, top_by: str = "relevance", ml_summary=None) -> str:
         "You are summarizing YouTube comments. Use the analytics context to help "
         "understand tone and sentiment, but verify by reading the comments. "
         "Identify the main themes, representative opinions, disagreements, and an estimate "
-        "of positive/neutral/negative sentiment. Provide a concise, structured markdown summary."
+        "of positive/neutral/negative sentiment. Provide a concise, structured markdown summary." 
+        "Finally, include two action plans: one for the content creator and one for the moderator."
     )
     return f"{instructions}{analytics_context}\n\nCOMMENTS (top 100):\n{joined}"
 
