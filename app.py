@@ -101,7 +101,7 @@ def _comments_to_prompt(df, top_by: str = "relevance") -> str:
 # LLM Summarization Section
 # ----------------------------
 st.divider()
-st.subheader("LLM Summary (via OpenAI)")
+st.subheader("LLM Summary")
 
 col1, col2 = st.columns([2, 1])
 with col1:
