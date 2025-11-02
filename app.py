@@ -32,10 +32,15 @@ if st.button("Analyze") and url and api_key:
     with st.spinner("Analyzing…"):
         result = analyze(df)
 
-    # Save to session state so LLM & ML sections can use later
+    # Save to session state so analytics and LLM can use later
     st.session_state["df"] = df
     st.session_state["result"] = result
     st.session_state["video_id"] = video_id
+
+    # Reset any previous ML results (so we auto-run for this new dataset)
+    st.session_state.pop("merged_df_ml", None)
+    st.session_state.pop("ml_summary", None)
+    st.session_state["ml_cache_key"] = (video_id, len(df))
 
 # Retrieve from session
 df = st.session_state.get("df", pd.DataFrame())
@@ -78,8 +83,45 @@ else:
     st.info("No comments loaded yet. Enter a URL and click Analyze.")
 
 # ----------------------------
-# Helper: build LLM prompt
+# Auto-run pre-LLM analytics (toxicity + sentiment)
 # ----------------------------
+if not df.empty:
+    # Only compute if we haven't yet for this dataset
+    expected_key = (video_id, len(df))
+    have_key = st.session_state.get("ml_cache_key")
+    merged_df_ml = st.session_state.get("merged_df_ml")
+
+    if merged_df_ml is None or have_key != expected_key:
+        with st.status("Running toxicity & sentiment models...", expanded=False):
+            try:
+                merged_df_ml, ml_summary = run_pre_models(df, toxicity_threshold=0.7, max_items=1000)
+                st.session_state["merged_df_ml"] = merged_df_ml
+                st.session_state["ml_summary"] = ml_summary
+                st.session_state["ml_cache_key"] = expected_key
+                st.success(f"Scored {ml_summary['n_scored']} comments.")
+            except Exception as e:
+                st.error(f"Analysis error: {e}")
+
+# Show charts in dropdowns (expanders)
+merged_df_ml = st.session_state.get("merged_df_ml")
+ml_summary = st.session_state.get("ml_summary")
+
+if isinstance(merged_df_ml, pd.DataFrame) and not merged_df_ml.empty:
+    st.divider()
+    st.subheader("Pre-LLM Analytics (toxicity + sentiment)")
+    with st.expander("Toxic vs Not Toxic"):
+        st.pyplot(fig_toxicity_distribution(merged_df_ml))
+    with st.expander("Sentiment label distribution"):
+        st.pyplot(fig_sentiment_distribution(merged_df_ml))
+    with st.expander("Sentiment score histogram"):
+        st.pyplot(fig_sentiment_score_hist(merged_df_ml))
+
+# ----------------------------
+# LLM Summarization Section (placed AFTER analytics)
+# ----------------------------
+st.divider()
+st.subheader("LLM Summary")
+
 def _comments_to_prompt(df, top_by: str = "relevance") -> str:
     if top_by == "likes" and "likes" in df.columns:
         top = df.nlargest(100, "likes").copy()
@@ -96,18 +138,14 @@ def _comments_to_prompt(df, top_by: str = "relevance") -> str:
         lines.append(f"- [{likes}👍 | {repl}↩] {text}")
     joined = "\n".join(lines)
 
+    # (Optional) You could also inject a brief summary of ml_summary here for the LLM to consider.
+
     instructions = (
         "You are summarizing YouTube comments. Identify the main themes, opinions, "
         "and viewer sentiment (rough % positive/neutral/negative). "
         "Provide a brief, structured markdown summary."
     )
     return f"{instructions}\n\nCOMMENTS (top 100):\n{joined}"
-
-# ----------------------------
-# LLM Summarization Section
-# ----------------------------
-st.divider()
-st.subheader("LLM Summary")
 
 col1, col2 = st.columns([2, 1])
 with col1:
@@ -135,34 +173,3 @@ if run_summary:
                         st.markdown(summary)
                     except Exception as e:
                         st.error(f"LLM error: {e}")
-
-# ----------------------------
-# Pre-LLM analytics charts (dropdowns after the summary)
-# ----------------------------
-st.divider()
-st.subheader("Pre-LLM Analytics (toxicity + sentiment)")
-
-run_ml = st.button("Run pre-LLM analytics")
-if run_ml:
-    if df.empty:
-        st.warning("No comments loaded yet.")
-    else:
-        with st.status("Running toxicity & sentiment models...", expanded=False):
-            try:
-                merged_df_ml, ml_summary = run_pre_models(df, toxicity_threshold=0.7, max_items=1000)
-                st.session_state["merged_df_ml"] = merged_df_ml
-                st.session_state["ml_summary"] = ml_summary
-                st.success(f"Scored {ml_summary['n_scored']} comments.")
-            except Exception as e:
-                st.error(f"Analysis error: {e}")
-
-merged_df_ml = st.session_state.get("merged_df_ml")
-ml_summary = st.session_state.get("ml_summary")
-
-if isinstance(merged_df_ml, pd.DataFrame) and not merged_df_ml.empty:
-    with st.expander("Toxic vs Not Toxic"):
-        st.pyplot(fig_toxicity_distribution(merged_df_ml))
-    with st.expander("Sentiment label distribution"):
-        st.pyplot(fig_sentiment_distribution(merged_df_ml))
-    with st.expander("Sentiment score histogram"):
-        st.pyplot(fig_sentiment_score_hist(merged_df_ml))
