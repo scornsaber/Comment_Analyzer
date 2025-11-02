@@ -27,9 +27,22 @@ def _request(url: str) -> dict:
 
 MAX_COMMENTS = 2000
 
-def fetch_comments(video_id: str, api_key: str, max_pages: int = 7) -> pd.DataFrame:
+def fetch_comments(
+    video_id: str,
+    api_key: str,
+    max_pages: int = 7,
+    order: str = "relevance",   # <-- default to relevance
+) -> pd.DataFrame:
+    """
+    Fetch top-level comments for a video.
+
+    order: "relevance" or "time" (YouTube supports only these for commentThreads)
+    """
     if not api_key:
         raise RuntimeError("Missing YOUTUBE_API_KEY (set in Streamlit Secrets or env var).")
+
+    if order not in ("relevance", "time"):
+        raise ValueError('order must be "relevance" or "time"')
 
     rows, token, pages = [], None, 0
     while True:
@@ -39,6 +52,7 @@ def fetch_comments(video_id: str, api_key: str, max_pages: int = 7) -> pd.DataFr
             "maxResults": 100,
             "pageToken": token or "",
             "textFormat": "plainText",
+            "order": order,                 # <-- ask API for relevance
             "key": api_key,
         })
         data = _request(f"{YOUTUBE_COMMENTS_ENDPOINT}?{qs}")
@@ -55,7 +69,7 @@ def fetch_comments(video_id: str, api_key: str, max_pages: int = 7) -> pd.DataFr
 
         token = data.get("nextPageToken")
         pages += 1
-        if not token or pages >= max_pages:
+        if not token or pages >= max_pages or len(rows) >= MAX_COMMENTS:
             break
 
     return pd.DataFrame(rows)
