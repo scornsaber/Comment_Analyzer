@@ -4,7 +4,13 @@ import json
 import pandas as pd
 import streamlit as st
 from fetch_youtube import extract_video_id, fetch_comments
-from analyze import analyze
+from analyze import (
+    analyze,                      # simple scalar stats
+    run_pre_models,               # NEW: runs Detoxify + Sentiment
+    fig_toxicity_distribution,    # NEW: matplotlib Figure
+    fig_sentiment_distribution,   # NEW: matplotlib Figure
+    fig_sentiment_score_hist,     # NEW: matplotlib Figure
+)
 from openai import OpenAI
 
 st.set_page_config(page_title="YouTube Comment Analyzer", layout="wide")
@@ -26,7 +32,7 @@ if st.button("Analyze") and url and api_key:
     with st.spinner("Analyzing…"):
         result = analyze(df)
 
-    # Save to session state so LLM can use later
+    # Save to session state so LLM & ML sections can use later
     st.session_state["df"] = df
     st.session_state["result"] = result
     st.session_state["video_id"] = video_id
@@ -129,3 +135,34 @@ if run_summary:
                         st.markdown(summary)
                     except Exception as e:
                         st.error(f"LLM error: {e}")
+
+# ----------------------------
+# Pre-LLM analytics charts (dropdowns after the summary)
+# ----------------------------
+st.divider()
+st.subheader("Pre-LLM Analytics (toxicity + sentiment)")
+
+run_ml = st.button("Run pre-LLM analytics")
+if run_ml:
+    if df.empty:
+        st.warning("No comments loaded yet.")
+    else:
+        with st.status("Running toxicity & sentiment models...", expanded=False):
+            try:
+                merged_df_ml, ml_summary = run_pre_models(df, toxicity_threshold=0.7, max_items=1000)
+                st.session_state["merged_df_ml"] = merged_df_ml
+                st.session_state["ml_summary"] = ml_summary
+                st.success(f"Scored {ml_summary['n_scored']} comments.")
+            except Exception as e:
+                st.error(f"Analysis error: {e}")
+
+merged_df_ml = st.session_state.get("merged_df_ml")
+ml_summary = st.session_state.get("ml_summary")
+
+if isinstance(merged_df_ml, pd.DataFrame) and not merged_df_ml.empty:
+    with st.expander("Toxic vs Not Toxic"):
+        st.pyplot(fig_toxicity_distribution(merged_df_ml))
+    with st.expander("Sentiment label distribution"):
+        st.pyplot(fig_sentiment_distribution(merged_df_ml))
+    with st.expander("Sentiment score histogram"):
+        st.pyplot(fig_sentiment_score_hist(merged_df_ml))

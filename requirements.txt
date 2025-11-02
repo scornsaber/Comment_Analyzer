@@ -1,3 +1,8 @@
 streamlit>=1.38
 pandas>=2.2
 openai>=1.12.0,<2.0.0
+transformers
+pandas
+detoxify
+torch
+matplotlib
