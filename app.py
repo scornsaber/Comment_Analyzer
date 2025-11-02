@@ -141,6 +141,7 @@ def _comments_to_prompt(df, top_by: str = "relevance", ml_summary=None) -> str:
         "Identify the main themes, representative opinions, disagreements, and an estimate "
         "of positive/neutral/negative sentiment. Provide a concise, structured markdown summary." 
         "Finally, include two action plans: one for the content creator and one for the moderator."
+        "For moderator do not be overly strict. If the comments are non toxi provide minimal feedback."
     )
     return f"{instructions}{analytics_context}\n\nCOMMENTS (top 100):\n{joined}"
 
