@@ -1,13 +1,42 @@
+# ---- Base image
 FROM python:3.12-slim
 
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# ---- System hygiene
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
+# Install minimal tools (curl for healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ---- Workdir & non-root user
+WORKDIR /app
+RUN useradd -m -u 10001 appuser
+
+# ---- Dependencies
+COPY requirements.txt .
+# Force CPU torch wheel (smaller/faster to install than generic index)
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch \
+ && pip install --no-cache-dir -r requirements.txt
+
+# ---- Copy app
 COPY . .
 
-# Streamlit default port is 8501
-EXPOSE 8501
+# Streamlit defaults
 ENV PORT=8501
+EXPOSE 8501
 
+# Optional: Streamlit tweaks for reverse proxying
+ENV STREAMLIT_SERVER_ENABLE_XSRF_PROTECTION=false \
+    STREAMLIT_SERVER_ENABLE_CORS=false
+
+# Healthcheck: Streamlit returns 200 on /
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD curl -fsS http://127.0.0.1:8501/ || exit 1
+
+# Drop privileges
+USER appuser
+
+# Run
 CMD ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]

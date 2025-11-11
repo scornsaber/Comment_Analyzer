@@ -183,7 +183,7 @@ if run_summary:
                         st.error(f"LLM error: {e}")
 
 # ----------------------------
-# Downloads (bottom): analysis JSON only
+# Downloads (bottom): analysis JSON
 # ----------------------------
 if result:
     st.divider()
