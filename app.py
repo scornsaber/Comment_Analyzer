@@ -179,8 +179,55 @@ if run_summary:
                         )
                         summary = getattr(resp, "output_text", None) or str(resp)
                         st.markdown(summary)
+
+                        # Save for feedback
+                        st.session_state["last_prompt"] = prompt
+
                     except Exception as e:
                         st.error(f"LLM error: {e}")
+
+
+# -----------------------------------------
+# Feedback buttons
+# -----------------------------------------
+if st.session_state.get("last_prompt"):
+    st.divider()
+    st.subheader("Was this summary helpful?")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        up = st.button("👍 Yes")
+    with col2:
+        down = st.button("👎 No — summarize again")
+
+    if up:
+        st.success("Thanks for your feedback!")
+
+    if down:
+        st.warning("Re-running analysis and summarizing again…")
+
+        # Re-run the EXACT same summarization pipeline
+        try:
+            client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY"))
+
+            # rebuild prompt (using current df + analytics)
+            new_prompt = _comments_to_prompt(df, "relevance", ml_summary)
+
+            resp = client.responses.create(
+                model="gpt-4o",
+                input=new_prompt,
+            )
+            new_summary = getattr(resp, "output_text", None) or str(resp)
+
+            st.markdown("### 🔄 Updated Summary")
+            st.markdown(new_summary)
+
+            # Update session state
+            st.session_state["last_prompt"] = new_prompt
+
+        except Exception as e:
+            st.error(f"Re-summary error: {e}")
+
 
 # ----------------------------
 # Downloads (bottom): analysis JSON
