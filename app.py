@@ -186,11 +186,12 @@ if run_summary:
                     except Exception as e:
                         st.error(f"LLM error: {e}")
 
+    st.session_state["show_feedback"] = True
 
 # -----------------------------------------
 # Feedback buttons
 # -----------------------------------------
-if st.session_state.get("last_prompt"):
+if st.session_state.get("show_feedback"):
     st.divider()
     st.subheader("Was this summary helpful?")
 
@@ -218,11 +219,10 @@ if st.session_state.get("last_prompt"):
             )
             new_summary = getattr(resp, "output_text", None) or str(resp)
 
-            # ✅ Put updated summary inside a dropdown
             with st.expander("🔄 Updated summary (retry)", expanded=True):
                 st.markdown(new_summary)
 
-            # Update session state
+            # Update stored state
             st.session_state["last_prompt"] = new_prompt
             st.session_state["last_summary"] = new_summary
 
