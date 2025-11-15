@@ -206,7 +206,6 @@ if st.session_state.get("last_prompt"):
     if down:
         st.warning("Re-running analysis and summarizing again…")
 
-        # Re-run the EXACT same summarization pipeline
         try:
             client = OpenAI(api_key=st.secrets.get("OPENAI_API_KEY") or os.getenv("OPENAI_API_KEY"))
 
@@ -219,14 +218,17 @@ if st.session_state.get("last_prompt"):
             )
             new_summary = getattr(resp, "output_text", None) or str(resp)
 
-            st.markdown("### 🔄 Updated Summary")
-            st.markdown(new_summary)
+            # ✅ Put updated summary inside a dropdown
+            with st.expander("🔄 Updated summary (retry)", expanded=True):
+                st.markdown(new_summary)
 
             # Update session state
             st.session_state["last_prompt"] = new_prompt
+            st.session_state["last_summary"] = new_summary
 
         except Exception as e:
             st.error(f"Re-summary error: {e}")
+
 
 
 # ----------------------------
