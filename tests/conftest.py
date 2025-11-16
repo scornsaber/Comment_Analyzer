@@ -121,5 +121,3 @@ def patch_external_modules(monkeypatch):
 
     yield
 
-    # (pytest will clean up monkeypatches automatically; sys.modules entries
-    # are fine to leave in place during the test session.)
