@@ -1,0 +1,1 @@
+To run integration tests from root directory type "pytest -q"
