@@ -1,6 +1,6 @@
 *.db
 *.devdbrc
-
+venv/
 __pycache__/
 *.pyc
 *.pyo
