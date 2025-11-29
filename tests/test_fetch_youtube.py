@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 
-# Ensure repo root is on sys.path
+# Make sure repo root is on sys.path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import json
