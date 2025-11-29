@@ -167,23 +167,24 @@ class TestRunPreModels:
     def test_run_pre_models_max_items(self, mock_load_models):
         """Test that max_items limits processing."""
         mock_tox = Mock()
-        mock_tox.predict.return_value = {
-            "toxicity": [0.1, 0.2],
-        }
-        
+        def predict_side_effect(texts):
+            return {"toxicity": [0.1] * len(texts)}
+        mock_tox.predict.side_effect = predict_side_effect
+
         mock_sent = Mock()
-        mock_sent.return_value = [
-            {"label": "POSITIVE", "score": 0.9},
-            {"label": "POSITIVE", "score": 0.8},
-        ]
-        
+        def sent_side_effect(texts):
+            return [{"label": "POSITIVE", "score": 0.9} for _ in texts]
+        mock_sent.side_effect = sent_side_effect
+
         mock_load_models.return_value = (mock_tox, mock_sent)
-        
-        df = pd.DataFrame({"text": ["text"] * 100})
+
+        # Use unique text values to avoid merge duplicates
+        df = pd.DataFrame({"text": [f"text_{i}" for i in range(100)]})
         result_df, summary = run_pre_models(df, max_items=2)
-        
+
         assert summary["n_scored"] == 2
-    
+        assert len(result_df) == 2
+        
     @patch('analyze._load_models')
     def test_run_pre_models_toxicity_threshold(self, mock_load_models):
         """Test toxicity threshold classification."""

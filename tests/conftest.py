@@ -4,9 +4,12 @@ import types
 import pandas as pd
 import matplotlib.pyplot as plt
 import pytest
+from pathlib import Path
 
 
-@pytest.fixture(autouse=True)
+sys.path.insert(0, str(Path(__file__).parent.parent)) # added for analyze.py tests
+
+@pytest.fixture(autouse=False) # Changed to false for test_analyze uses
 def patch_external_modules(monkeypatch):
     """
     Autouse fixture: for every test, ensure that when app.py imports

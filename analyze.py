@@ -3,6 +3,7 @@ import pandas as pd
 from typing import Dict, Tuple, Optional, List
 from functools import lru_cache
 import matplotlib.pyplot as plt
+import torch # remove this line later
 
 try:
     import torch
@@ -94,6 +95,10 @@ def run_pre_models(
 
 def fig_toxicity_distribution(merged_df: pd.DataFrame) -> plt.Figure:
     fig = plt.figure(figsize=(6,4))
+    if merged_df.empty or "is_toxic" not in merged_df.columns:
+        plt.text(0.5, 0.5, "No data available", ha='center', va='center')
+        plt.title("Toxic vs Not Toxic")
+        return fig
     values = [int((~merged_df["is_toxic"]).sum()), int(merged_df["is_toxic"].sum())]
     plt.bar(["Not Toxic","Toxic"], values)
     plt.ylabel("Number of Comments")
@@ -102,6 +107,10 @@ def fig_toxicity_distribution(merged_df: pd.DataFrame) -> plt.Figure:
 
 def fig_sentiment_distribution(merged_df: pd.DataFrame) -> plt.Figure:
     fig = plt.figure(figsize=(6,4))
+    if merged_df.empty or "sentiment" not in merged_df.columns:
+        plt.text(0.5, 0.5, "No data available", ha='center', va='center')
+        plt.title("Sentiment Label Distribution")
+        return fig
     merged_df["sentiment"].value_counts(dropna=False).plot(kind="bar")
     plt.ylabel("Number of Comments")
     plt.title("Sentiment Label Distribution")
@@ -110,6 +119,10 @@ def fig_sentiment_distribution(merged_df: pd.DataFrame) -> plt.Figure:
 
 def fig_sentiment_score_hist(merged_df: pd.DataFrame) -> plt.Figure:
     fig = plt.figure(figsize=(7,4))
+    if merged_df.empty or "sentiment_score" not in merged_df.columns:
+        plt.text(0.5, 0.5, "No data available", ha='center', va='center')
+        plt.title("Sentiment Score Histogram")
+        return fig
     plt.hist(merged_df["sentiment_score"], bins=20, edgecolor="black")
     plt.xlabel("Sentiment Score")
     plt.ylabel("Frequency")
