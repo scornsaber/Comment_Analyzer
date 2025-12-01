@@ -1,5 +1,5 @@
 -- Version 0.01 will likely change
-
+-- schema.sql
 CREATE TABLE comment (
     id TEXT PRIMARY KEY,        -- "yt_001", "tw_001", etc.
     platform TEXT NOT NULL,     -- 'youtube', 'twitter', 'reddit'

@@ -1,4 +1,4 @@
--- SQLITE_DataBase/enforce_caps.sql
+-- DB/enforce_caps.sql
 -- Compatible pruning triggers (no CTEs/window functions)
 
 -- Helpful indexes

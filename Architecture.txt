@@ -1,0 +1,214 @@
+ARCHITECTURE STATEMENT
+YouTube Comment Analyzer
+
+Overview
+The YouTube Comment Analyzer is a multi-stage system designed to collect, process, analyze, and summarize YouTube comments using a combination of deterministic preprocessing
+models, a large language model, and a Streamlit-based user interface. The system consists of four major subsystems:
+
+(1) the comment ingestion and extraction layer,
+(2) the analytics and machine learning preprocessing layer,
+(3) the summarization and reporting layer, and
+(4) testing and validation infrastructure.
+
+An early prototype was also developed using PyQt, JSONL exporters, and SQLite database tooling. These prototype components document the evolution of the system and
+provide supporting utilities for future extensions. The final application operates as a Streamlit web application with full automated testing coverage through pytest
+and streamlit.testing.
+
+Production Architecture
+
+2.1 Streamlit Front-End (app.py)
+The Streamlit application serves as the entry point for end users. It manages user inputs, API key handling, comment retrieval, preprocessing analytics, LLM summarization,
+ and result visualization. Key responsibilities include:
+
+    Accepting a YouTube URL or video ID.
+
+    Calling fetch_youtube to retrieve comments from the YouTube Data API.
+
+    Running analyze to compute basic metrics (comment count and average text length).
+
+    Running run_pre_models to score toxicity and sentiment on the top 100 comments using Detoxify and a HuggingFace sentiment pipeline.
+
+    Rendering metrics, dataframes, and charts (toxicity distribution, sentiment distribution, histogram).
+
+    Constructing a structured prompt for the OpenAI LLM summarizer.
+
+    Displaying the LLM output and accepting feedback from the user.
+
+    Storing temporary session state for df, result, merged_df_ml, ml_summary, video_id, and last_prompt.
+
+    The Streamlit app is designed around repeatable and stateless execution. All significant state values are stored inside st.session_state to support reruns triggered
+    by Streamlit.
+
+2.2 Comment Retrieval Layer (fetch_youtube.py)
+This module isolates all interactions with the YouTube Data API (commentThreads endpoint). It performs:
+
+    Extraction of video IDs from URLs or short links.
+
+    Safe network requests with clear error transformation.
+
+    Iterative paging (up to max_pages or MAX_COMMENTS).
+
+    Construction of normalized pandas DataFrames containing:
+    author, text, published_at, likes, replies.
+
+    This layer allows the rest of the system to operate purely on pandas DataFrames without concern for API details.
+
+2.3 Analytics and Model Layer (analyze.py)
+This module provides two levels of analysis.
+
+    Basic analysis via analyze(df):
+
+    Counts comments.
+
+    Computes average comment length.
+
+    Pre-LLM model-assisted analysis via run_pre_models:
+
+    Loads Detoxify ("multilingual") for toxicity scoring.
+
+    Loads HuggingFace sentiment-analysis pipeline.
+
+    Executes both models in batches for efficiency.
+
+    Merges results into a single DataFrame.
+
+    Computes summaries including:
+    total scored, toxic count, sentiment counts, average scores.
+
+    It also contains helper functions such as batch generators and device detection, and provides matplotlib-based visualization helpers.
+
+2.4 Summarization Layer
+    The LLM prompt builder _comments_to_prompt injects:
+
+    Instructions for summarization.
+
+    Analytics context from model-assisted evaluation.
+
+    A curated list of comments (top 100 by relevance or likes).
+
+    The summarizer is executed using the OpenAI Python client, and its output is rendered directly in Streamlit. The system stores last_prompt and last_summary
+    for debugging and user feedback.
+
+Testing Architecture
+
+3.1 Unit Tests for analyze.py
+Located in tests/test_analyze.py, these tests verify:
+
+    Correct computation of comment statistics.
+
+    Device detection logic under multiple mocking scenarios.
+
+    Batch generation behavior.
+
+    Full run_pre_models path using mocked Detoxify and sentiment models.
+
+    Edge cases including empty DataFrames and missing columns.
+
+    Figure rendering for all charts, including empty-data handling.
+
+3.2 Integration Tests for the Streamlit App
+tests/test_app_integration.py uses Streamlit's AppTest API to simulate:
+
+    Loading app.py.
+
+    Entering a test URL.
+
+    Clicking Analyze and verifying resulting state values.
+
+    Verifying that the UI displays metrics, dataframes, and charts.
+
+    Triggering LLM summarization using the mocked OpenAI client.
+
+    Checking that session_state values update correctly.
+
+3.3 Mocking Infrastructure (conftest.py)
+The conftest file provides dependency injection for:
+
+    fetch_youtube (fake comment retrieval)
+
+    analyze (fake deterministic analytics)
+
+    openai (fake LLM client returning fake summaries)
+
+    This allows full integration testing without network calls, GPU dependencies, or real API keys.
+
+3.4 Fetch Layer Tests
+Dedicated tests validate:
+
+    URL parsing and video ID extraction.
+
+    Error handling for HTTP and network failures.
+
+    DataFrame formatting from fake API responses.
+
+    Prototype Architecture (prototype folder)
+
+    The prototype phase explored multiple approaches to UI, data storage, and ingestion. These components are not used in the final product but document the system's evolution.
+
+4.1 PyQt Prototype GUI
+A PyQt6-based standalone GUI allowed users to:
+
+    Enter a YouTube link.
+
+    Display metadata (title, author, video ID).
+
+    Download comments using pytubefix and custom utilities.
+
+    Render a placeholder graph using pyqtgraph.
+
+    Save raw comments to JSONL.
+
+    This prototype informed UX decisions later implemented in Streamlit.
+
+    4.2 JSONL Storage and SQLite Experimental Pipeline
+    Prototype tools included:
+
+    jsonl_to_database.py: Loads multiple .jsonl files into a SQLite database with automatic vacuuming, WAL mode, and insertion caps.
+
+    database_to_csv.py: Exports database content to CSV for training data preparation.
+
+    schema.sql: Defines the generic comment table supporting multiple platforms.
+
+    enforce_caps.sql: Provides SQL triggers that prune old comments and limit the number of videos stored.
+
+    These were part of an optional offline pipeline for dataset archival and analysis.
+
+4.3 Standalone Comment Fetcher (pytubefix)
+Earlier prototypes relied on pytubefix and custom JSONL writers before moving to the official YouTube Data API. This approach was replaced for reliability,
+rate-limiting control, and metadata quality.
+
+    Development and Execution Flow
+
+    User enters a YouTube URL.
+
+    Streamlit extracts video ID.
+
+    fetch_youtube retrieves comments (relevance first).
+
+    analyze produces basic scalars.
+
+    run_pre_models scores toxicity and sentiment on top 100 comments.
+
+    Visualization figures are generated.
+
+    _comments_to_prompt builds an LLM prompt with analytics context.
+
+    OpenAI client produces a final structured summary.
+
+    User may approve or request a re-summarization.
+
+    Users may download the scalar analysis as JSON.
+
+    Modularity and Extensibility
+
+    The system is designed for modular replacement of:
+
+    Data ingestion (swap YouTube for other platforms).
+
+    Models (replace Detoxify or sentiment pipeline).
+
+    Summarization backends (replace OpenAI client with any LLM).
+
+    UI front-ends (Streamlit may be replaced with PyQt, Flask, or desktop apps).
+
+    Storage layers (SQLite pipeline can be expanded for long-term archival).
